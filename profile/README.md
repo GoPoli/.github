@@ -11,7 +11,6 @@ GoPoli is a mobile application developed with **Flutter** for the frontend and *
 - [The process](#the-process)
   - [Built with](#built-with)
   - [Project structure](#project-structure)
-- [Useful resources](#useful-resources)
 - [License](#license)
 - [Author](#author)
 
