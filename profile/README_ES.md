@@ -101,3 +101,4 @@ Este proyecto es para fines académicos y educativos.
 ## Autores
 - Michael Daniel (MaicolD0930)
 - Jorge Martinez (GeorgeAMS)
+- Marian Lasney
