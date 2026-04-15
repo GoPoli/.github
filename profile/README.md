@@ -88,3 +88,4 @@ This project is for academic and educational purposes.
 ## Author
 - Michael Daniel (MaicolD0930)
 - Jorge Martinez (GeorgeAMS)
+- Marian Lasney
