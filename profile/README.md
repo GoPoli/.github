@@ -2,10 +2,9 @@
 
 🇪🇸 Español: [Leer en español](README_ES.md)
 
-GoPoli is a mobile application developed with **Flutter** for the frontend and **Spring Boot** for the backend.
+GoPoli is a student ride-sharing app built as a **Next.js PWA** (`web/`), a **Spring Boot** REST API (`backend/`), and **PostgreSQL**.
 
 ## Table of Contents
-- [Demo](#demo)
 - [Features](#features)
 - [Installation](#installation)
 - [The process](#the-process)
@@ -16,38 +15,46 @@ GoPoli is a mobile application developed with **Flutter** for the frontend and *
 
 ---
 
-## Demo
-APK available at:
-
-`frontend/build/app/outputs/flutter-apk/app-release.apk`
-
----
-
 ## Features
 - User login
 - Student registration
 - Career consultation
+- Shared trips (create, join, manage)
+- Map (OpenStreetMap / Leaflet) and driving routes (OSRM)
 - REST API consumption
-- Railway integration
+- Railway / Neon integration
 - PostgreSQL database support
+- Installable PWA
 
 ---
 
 ## Installation
+
+### Backend + database
 ```bash
 git clone https://github.com/MaicolD0930/GoPoli
-cd GoPoli/frontend
-flutter pub get
-flutter run
+cd GoPoli/backend
+# Configure SPRING_DATASOURCE_* (see DATABASE_NEON.md or backend/DOCKER_DB.md)
+./mvnw spring-boot:run
 ```
+
+### Web PWA
+```bash
+cd GoPoli/web
+cp .env.example .env.local   # set NEXT_PUBLIC_API_URL
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Deploy notes: [`web/DEPLOYMENT.md`](web/DEPLOYMENT.md), [`DEPLOY_RAILWAY.md`](DEPLOY_RAILWAY.md).
 
 ## The process
 
 ### Built with
-- Flutter
+- Next.js (PWA)
 - Spring Boot
-- Railway
 - PostgreSQL
+- Railway / Neon
 
 ### Project structure
 ```text
@@ -57,30 +64,20 @@ GoPoli/
 │   ├── pom.xml
 │   └── mvnw
 │
-├── frontend/
-│   ├── lib/
-│   │   ├── assets/
-│   │   ├── config/
-│   │   ├── models/
-│   │   ├── pages/
-│   │   └── main.dart
-│   │
-│   ├── android/
-│   ├── ios/
-│   └── pubspec.yaml
+├── web/
+│   ├── src/
+│   │   ├── app/
+│   │   └── features/
+│   ├── public/
+│   └── package.json
 ```
 
 The project architecture is divided into two main modules:
 
-- **backend/**: REST API developed with Spring Boot.
-- **frontend/**: Mobile application developed with Flutter.
+- **backend/**: REST API developed with Spring Boot (PostgreSQL).
+- **web/**: Next.js PWA (App Router + TypeScript). Map: OpenStreetMap (Leaflet); routes: OSRM.
 
-Inside the frontend, the `lib/` folder is organized by responsibilities:
-- `config/` → Global configuration
-- `models/` → Data models
-- `pages/` → Navigation screens
-- `utils/` → Helper functions and validations
-- `assets/` → Images and static resources
+Inside `web/`, features are organized by domain (`auth`, `mapa`, `perfil`, etc.) under `src/features/`, with App Router pages in `src/app/`.
 
 ## License
 This project is for academic and educational purposes.
