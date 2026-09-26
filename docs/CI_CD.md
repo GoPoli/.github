@@ -158,9 +158,10 @@ flowchart LR
 | Verificación | Si faltan secrets, el despliegue se omite con un aviso en lugar de fallar |
 | `.env` temporal | Se genera desde el secret `ENV_FILE`, se validan las variables obligatorias y el compose con `docker compose config` |
 | SSH | Llave desde `SERVER_KEY` y huella del servidor fijada con `SERVER_KNOWN_HOSTS` (`StrictHostKeyChecking yes`) |
-| Transferencia | `compose.yaml` y `.env` viajan comprimidos por el mismo canal SSH a `DEPLOY_PATH`; el `.env` queda con permisos `600` |
-| Despliegue | Bloqueo con `flock` para que dos repos no desplieguen a la vez, `docker compose pull`, `up -d --remove-orphans --wait` e `image prune` |
-| Limpieza | Una `trap` borra el `.env` del servidor aunque el despliegue falle; en el servidor queda solo `compose.yaml` |
+| Transferencia | `compose.yaml` y `.env` viajan comprimidos por SSH a una carpeta temporal propia de la ejecución (`DEPLOY_PATH/.deploy-<id>`, permisos `700`) |
+| Despliegue | Con el turno de `flock` tomado copia su `compose.yaml` y su `.env` a `DEPLOY_PATH`, ejecuta `docker compose pull`, `up -d --remove-orphans --wait` e `image prune`; los despliegues simultáneos de varios repos esperan en fila |
+| Limpieza | Una `trap` borra el `.env` y la carpeta temporal antes de soltar el turno, aunque el despliegue falle; en el servidor queda solo `compose.yaml` |
+| Protección | Los secretos son obligatorios en `compose.yaml`: un `docker compose up` sin `.env` falla en lugar de recrear servicios sin secretos |
 | Verificación pública | `GET {NEXT_PUBLIC_API_URL}/health` debe responder antes de dar el despliegue por bueno |
 
 Los contenedores conservan su configuración después de borrar el `.env`: Docker la guarda al crearlos. Por eso en el servidor no se ejecuta `docker compose up` a mano; cualquier cambio de configuración se hace editando el secret `ENV_FILE` y ejecutando de nuevo **Deploy to Production**.

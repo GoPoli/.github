@@ -44,7 +44,7 @@ jobs:
     needs: check
     if: needs.check.outputs.configured == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     concurrency:
       group: gopoli-production
       cancel-in-progress: false
@@ -57,6 +57,7 @@ jobs:
       SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
       ENV_FILE: ${{ secrets.ENV_FILE }}
+      RUN_TAG: ${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout deployment configuration
@@ -111,30 +112,39 @@ jobs:
             ServerAliveInterval 30
           EOF
 
-      - name: Transfer compose.yaml and .env
+      - name: Stage compose.yaml and .env on the server
         working-directory: docker/production
         run: |
           tar -czf - compose.yaml .env | ssh gopoli-server \
             "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \
              \$S install -d -m 750 '$DEPLOY_PATH' && \
-             \$S tar -xzf - --no-same-owner -C '$DEPLOY_PATH' && \
-             \$S chmod 600 '$DEPLOY_PATH/.env' && \$S chmod 644 '$DEPLOY_PATH/compose.yaml'"
+             \$S install -d -m 700 '$DEPLOY_PATH/.deploy-$RUN_TAG' && \
+             \$S tar -xzf - --no-same-owner -C '$DEPLOY_PATH/.deploy-$RUN_TAG' && \
+             \$S chmod 600 '$DEPLOY_PATH/.deploy-$RUN_TAG/.env'"
 
       - name: Deploy to server
         run: |
           ssh gopoli-server \
-            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \$S env DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'EOF'
+            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \$S env DEPLOY_PATH='$DEPLOY_PATH' RUN_TAG='$RUN_TAG' bash -s" <<'EOF'
           set -euo pipefail
           cd "$DEPLOY_PATH"
+          stage=".deploy-$RUN_TAG"
 
           cleanup() {
+            rm -rf "$stage"
             rm -f .env
             echo "Archivo .env eliminado del servidor."
           }
           trap cleanup EXIT
 
           exec 9>/var/lock/gopoli-deploy.lock
-          flock -w 600 9
+          echo "Esperando turno de despliegue..."
+          flock -w 900 9
+
+          find . -maxdepth 1 -name '.deploy-*' -mmin +60 -exec rm -rf {} +
+          [ -f "$stage/.env" ] || { echo "No se encontró la configuración de este despliegue."; exit 1; }
+          install -m 644 "$stage/compose.yaml" compose.yaml
+          install -m 600 "$stage/.env" .env
 
           echo "Descargando imágenes publicadas..."
           docker compose -p gopoli pull --quiet

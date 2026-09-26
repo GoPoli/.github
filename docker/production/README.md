@@ -119,13 +119,15 @@ ss -ltn | awk 'NR>1 {print $4}' | awk -F: '{print $NF}' | sort -n | uniq
 
 ### Operación
 
-Los contenedores conservan su configuración aunque el `.env` se borre, porque Docker la guarda al crearlos; `docker compose ps`, `logs` y `restart` funcionan sin él. En cambio, **no ejecutes `docker compose up` a mano en el servidor**: sin `.env` recrearía los contenedores sin secretos. Para cambiar la configuración edita el secret `ENV_FILE` y ejecuta **Deploy to Production**.
+Los contenedores conservan su configuración aunque el `.env` se borre, porque Docker la guarda al crearlos. Los secretos son variables obligatorias en `compose.yaml`: sin `.env`, cualquier comando de `docker compose` en el servidor se detiene con un error en lugar de recrear los contenedores sin secretos. Para inspeccionar el servidor usa `docker` directamente, y para cambiar la configuración edita el secret `ENV_FILE` y ejecuta **Deploy to Production**.
 
 ```bash
-cd <DEPLOY_PATH>
-docker compose ps
-docker compose logs -f api-gopoli
+docker ps --filter name=gopoli
+docker logs -f gopoli-api
+docker restart gopoli-web
 ```
+
+Los despliegues simultáneos (por ejemplo, un push a la API y otro a la PWA al mismo tiempo) no se pisan: cada uno sube su configuración a una carpeta temporal propia (`.deploy-<id de ejecución>`, permisos `700`) y espera su turno con `flock`. Solo con el turno tomado copia su `compose.yaml` y su `.env`, despliega y los borra.
 
 > [!CAUTION]
 > `docker compose down -v` borra el volumen `pg_data` y con él todos los usuarios, viajes y mensajes.
