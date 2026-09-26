@@ -1,36 +1,114 @@
+name: gopoli
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  ulimits:
+    nofile:
+      soft: 65536
+      hard: 65536
+
 services:
+  db-gopoli:
+    <<: *hardening
+    image: ghcr.io/gopoli/gopoli-db:${GOPOLI_DB_TAG:-latest}
+    container_name: gopoli-db
+    profiles:
+      - db
+    env_file:
+      - .env.db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql:mode=1777
+    shm_size: 128mb
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      "docker_compose_diagram.icon": "postgresql"
+      "docker_compose_diagram.cluster": "Database Layer"
+      "docker_compose_diagram.description": "DB"
+
   api-gopoli:
-    image: ghcr.io/gopoli/gopoli-api:latest
+    <<: *hardening
+    image: ghcr.io/gopoli/gopoli-api:${GOPOLI_API_TAG:-latest}
     container_name: gopoli-api
-    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${GOPOLI_BIND_ADDRESS:-127.0.0.1}:${GOPOLI_API_PORT:-8080}:8080"
     env_file:
       - .env.api
+    tmpfs:
+      - /tmp
+    depends_on:
+      db-gopoli:
+        condition: service_healthy
+        required: false
     networks:
-      - network
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          memory: 384M
     labels:
       "docker_compose_diagram.icon": "spring"
       "docker_compose_diagram.cluster": "Backend Layer"
       "docker_compose_diagram.description": "API REST"
 
   web-gopoli:
-    image: ghcr.io/gopoli/gopoli-web:latest
+    <<: *hardening
+    image: ghcr.io/gopoli/gopoli-web:${GOPOLI_WEB_TAG:-latest}
     container_name: gopoli-web
-    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${GOPOLI_BIND_ADDRESS:-127.0.0.1}:${GOPOLI_WEB_PORT:-3000}:3000"
     env_file:
       - .env.web
+    tmpfs:
+      - /tmp
+      - /app/.next:uid=1000,gid=1000,mode=0755,size=128m
     depends_on:
-      - api-gopoli
+      api-gopoli:
+        condition: service_healthy
     networks:
-      - network
+      - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
+        reservations:
+          memory: 192M
     labels:
       "docker_compose_diagram.icon": "nextjs"
       "docker_compose_diagram.cluster": "Frontend Layer"
       "docker_compose_diagram.description": "PWA"
 
+volumes:
+  pg_data:
+
 networks:
-  network:
+  backend:
+    driver: bridge
+    internal: true
+  frontend:
     driver: bridge
