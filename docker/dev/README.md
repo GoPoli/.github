@@ -15,7 +15,7 @@ Esta guía describe cómo levantar el entorno **Dev** de GoPoli con Docker Compo
 
 En el mismo directorio deben estar:
 
-* `docker-compose.yml`
+* `compose.yaml`
 * `.env.db`
 * `.env.api`
 * `.env.web`
@@ -24,7 +24,7 @@ Descárgalos con sus plantillas:
 
 ```bash
 base=https://raw.githubusercontent.com/GoPoli/.github/main/docker/dev
-curl -L $base/docker-compose.yml -o docker-compose.yml
+curl -L $base/compose.yaml -o compose.yaml
 curl -L $base/.env.db.example -o .env.db
 curl -L $base/.env.api.example -o .env.api
 curl -L $base/.env.web.example -o .env.web

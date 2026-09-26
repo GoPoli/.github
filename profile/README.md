@@ -63,7 +63,7 @@ Cada componente vive en su propio repositorio, tiene su propia CI y publica su i
 ## Probarlo en un minuto
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
 docker compose -p gopoli up -d
 ```
 

@@ -14,7 +14,7 @@ Este repositorio es el repositorio especial `.github` de la organización **GoPo
 Ejecución rápida:
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml && docker compose -p gopoli up -d
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose -p gopoli up -d
 ```
 
 ## Estructura del Proyecto

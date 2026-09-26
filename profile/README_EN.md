@@ -63,7 +63,7 @@ Each component lives in its own repository, runs its own CI, and publishes its i
 ## Try it in a minute
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
 docker compose -p gopoli up -d
 ```
 

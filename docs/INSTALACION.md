@@ -39,7 +39,7 @@ flowchart LR
 ## A. Demo con Docker
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
 docker compose -p gopoli up -d
 ```
 
@@ -141,10 +141,9 @@ Guía completa: [kubernetes](../kubernetes/README.md).
 Un VPS con Docker, Nginx y Certbot aloja los tres servicios con el entorno [docker/production](../docker/production/README.md):
 
 1. Registra dos dominios (`A`) hacia el servidor: uno para la API y otro para la PWA.
-2. Descarga el compose, los scripts y las plantillas `.env*`, y define contraseñas y secretos propios.
-3. Elige puertos libres del host (`GOPOLI_API_PORT`, `GOPOLI_WEB_PORT`) y levanta con `docker compose -p gopoli up -d`.
+2. Configura en la organización los secrets del despliegue (`SERVER_HOST`, `SERVER_PORT`, `SERVER_USER`, `SERVER_KEY`, `SERVER_KNOWN_HOSTS`, `DEPLOY_PATH` y `ENV_FILE`) con puertos libres del host en `GOPOLI_API_PORT` y `GOPOLI_WEB_PORT`.
+3. Ejecuta el workflow **Deploy to Production** de este repositorio; desde entonces cada push a `main` de la API, la PWA o la base despliega solo.
 4. Crea un sitio de Nginx por dominio hacia `127.0.0.1:<puerto>` y emite los certificados con `certbot --nginx`.
-5. Actualiza con `./update_gopoli.sh` y programa `./backup_gopoli.sh`.
 
 ---
 

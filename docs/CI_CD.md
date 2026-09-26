@@ -11,15 +11,16 @@ Cada repositorio de GoPoli es independiente: tiene su propio pipeline, sus propi
 | GoPoli-API | `maven.yml` | Push y PR a `main` | `mvn verify`: compila y ejecuta las pruebas |
 | GoPoli-API | `codeql.yml` | Push, PR y semanal | Análisis de seguridad de Java y Actions |
 | GoPoli-API | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
-| GoPoli-API | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-api` |
+| GoPoli-API | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-api` y, en `main`, despliega a producción |
 | GoPoli-API | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
 | GoPoli-Web | `node.js.yml` | Push y PR a `main` | `pnpm install --frozen-lockfile`, lint, typecheck, pruebas y build en Node 22 y 24 |
 | GoPoli-Web | `codeql.yml` | Push, PR y semanal | Análisis de seguridad de TypeScript y Actions |
 | GoPoli-Web | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
-| GoPoli-Web | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-web` |
+| GoPoli-Web | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-web` y, en `main`, despliega a producción |
 | GoPoli-Web | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
 | GoPoli-DB | `ci.yml` | Push y PR a `main` | Construye la imagen, la arranca endurecida con y sin datos demo y valida tablas, catálogos y cuentas |
-| GoPoli-DB | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-db` |
+| GoPoli-DB | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-db` y, en `main`, despliega a producción |
+| .github | `deploy.yml` | Llamado por los `packaging.yml`, cambios en `docker/production/compose.yaml`, manual | Despliega el stack de producción por SSH |
 | GoPoli-Mobile | `flutter.yml` | Push y PR a `main` | `flutter analyze` y `flutter test` (repositorio archivado) |
 
 Además, **Dependabot** revisa cada semana las dependencias (Maven, pnpm mediante el ecosistema `npm`, o pub), la imagen base del `Dockerfile` y las versiones de las Actions de cada repositorio.
@@ -134,15 +135,46 @@ docker push ghcr.io/gopoli/gopoli-api:latest
 
 ## Despliegue en el servidor
 
-El servidor de producción no recibe credenciales de GitHub: descarga imágenes públicas de GHCR y el `docker-compose.yml` publicado en este repositorio. Los secretos (`.env*`) viven solo en el servidor con permisos `600`.
+El despliegue es continuo: cuando `packaging.yml` publica una imagen desde `main`, llama al workflow reutilizable [`deploy.yml`](../.github/workflows/deploy.yml) de este repositorio, que actualiza el servidor por SSH.
 
 ```mermaid
 flowchart LR
-  main["push a main"] --> ghcr[("GHCR")]
-  ops["Operador en el servidor"] --> upd["update_gopoli.sh"]
-  upd -->|"curl"| compose["docker-compose.yml publicado"]
-  upd -->|"docker compose pull"| ghcr
-  upd --> up["up -d + verificación de salud"]
+  push["push a main
+(API, PWA o DB)"] --> pkg["packaging.yml"]
+  pkg --> ghcr[("GHCR")]
+  pkg --> deploy["deploy.yml
+(GoPoli/.github)"]
+  deploy -->|"SSH: compose.yaml + .env"| server["Servidor"]
+  server -->|"docker compose pull"| ghcr
+  server --> up["up -d --wait
+borra .env"]
+  deploy --> health["GET /health público"]
 ```
 
-Para fijar versiones, define `GOPOLI_API_TAG`, `GOPOLI_WEB_TAG` y `GOPOLI_DB_TAG` en el `.env` del servidor con una etiqueta `sha-<commit>` o `X.Y.Z`; revertir es volver a la etiqueta anterior y ejecutar el script. Guía completa: [docker/production](../docker/production/README.md).
+| Paso | Qué hace |
+| --- | --- |
+| Verificación | Si faltan secrets, el despliegue se omite con un aviso en lugar de fallar |
+| `.env` temporal | Se genera desde el secret `ENV_FILE`, se validan las variables obligatorias y el compose con `docker compose config` |
+| SSH | Llave desde `SERVER_KEY` y huella del servidor fijada con `SERVER_KNOWN_HOSTS` (`StrictHostKeyChecking yes`) |
+| Transferencia | `compose.yaml` y `.env` viajan comprimidos por el mismo canal SSH a `DEPLOY_PATH`; el `.env` queda con permisos `600` |
+| Despliegue | Bloqueo con `flock` para que dos repos no desplieguen a la vez, `docker compose pull`, `up -d --remove-orphans --wait` e `image prune` |
+| Limpieza | Una `trap` borra el `.env` del servidor aunque el despliegue falle; en el servidor queda solo `compose.yaml` |
+| Verificación pública | `GET {NEXT_PUBLIC_API_URL}/health` debe responder antes de dar el despliegue por bueno |
+
+Los contenedores conservan su configuración después de borrar el `.env`: Docker la guarda al crearlos. Por eso en el servidor no se ejecuta `docker compose up` a mano; cualquier cambio de configuración se hace editando el secret `ENV_FILE` y ejecutando de nuevo **Deploy to Production**.
+
+### Secrets de la organización
+
+| Secret | Contenido |
+| --- | --- |
+| `SERVER_HOST` | IP o dominio del servidor |
+| `SERVER_PORT` | Puerto SSH |
+| `SERVER_USER` | Usuario SSH (con `sudo` sin contraseña o `root`) |
+| `SERVER_KEY` | Llave privada SSH en formato PEM u OpenSSH |
+| `SERVER_KNOWN_HOSTS` | Línea de `known_hosts` del servidor (`ssh-keyscan -p <puerto> <host>`) |
+| `DEPLOY_PATH` | Carpeta de despliegue en el servidor |
+| `ENV_FILE` | Contenido completo del `.env` de producción ([plantilla](../docker/production/.env.example)) |
+
+Se definen a nivel de organización con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`; los `packaging.yml` los heredan con `secrets: inherit`. Los pull requests desde forks nunca reciben secrets.
+
+Para fijar versiones, define `GOPOLI_API_TAG`, `GOPOLI_WEB_TAG` y `GOPOLI_DB_TAG` en `ENV_FILE` con una etiqueta `sha-<commit>` o `X.Y.Z`; revertir es volver a la etiqueta anterior y ejecutar el workflow. Guía completa: [docker/production](../docker/production/README.md).

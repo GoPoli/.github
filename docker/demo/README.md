@@ -15,12 +15,12 @@ Esta guía describe cómo levantar GoPoli completo en tu equipo con Docker Compo
 ## **Opción 1: Ejecución Rápida con un Solo Comando**
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml && docker compose -p gopoli up -d
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose -p gopoli up -d
 ```
 
 Este comando:
 
-1. **Descarga** el `docker-compose.yml` del entorno demo.
+1. **Descarga** el `compose.yaml` del entorno demo.
 2. **Levanta** los contenedores en segundo plano (`-d`) bajo el proyecto `gopoli`.
 
 Servicios disponibles:
@@ -50,7 +50,7 @@ docker compose -p gopoli down
 #### **Paso 1: Descargar el archivo de Compose**
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml
+curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
 ```
 
 #### **Paso 2: Descargar las imágenes**

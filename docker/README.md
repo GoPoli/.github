@@ -30,7 +30,7 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 
 **Ruta:** [`/docker/demo`](demo/README.md)
 
-* Variables definidas directamente en el `docker-compose.yml`.
+* Variables definidas directamente en el `compose.yaml`.
 * Base de datos con esquema, catálogos y datos de demostración (`GOPOLI_SEED_DEMO=true`).
 * La API espera a que PostgreSQL esté `healthy` antes de arrancar.
 * Ideal para **demostraciones**, **pruebas de integración** y **validaciones rápidas**.
@@ -55,7 +55,8 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 
 * **API**, **PWA** y **PostgreSQL** (perfil `db`) o una base externa como **Neon** (sin perfil).
 * La base vive en una red interna sin puertos publicados; API y PWA escuchan solo en `127.0.0.1` con puertos configurables (`GOPOLI_API_PORT`, `GOPOLI_WEB_PORT`).
-* Sin datos de demostración, etiquetas de imagen fijables y scripts de actualización (`update_gopoli.sh`) y respaldo (`backup_gopoli.sh`).
+* Un único `.env` con todas las variables; cada servicio recibe solo las suyas. Sin datos de demostración y con etiquetas de imagen fijables.
+* Despliegue automático con GitHub Actions: cada push a `main` de la API, la PWA o la base publica la imagen y actualiza el servidor, que conserva solo `compose.yaml`.
 * Pensado para ir detrás de Nginx con certificados de Let's Encrypt.
 
 ---
