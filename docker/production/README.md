@@ -73,7 +73,7 @@ Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
 
 ### Secrets
 
-Se crean en **Organization settings → Secrets and variables → Actions** con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`:
+Se crean en **Organization settings → Secrets and variables → Actions** con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`, o en **Settings → Secrets and variables → Actions** de cada uno de esos repositorios (`gh secret set <NOMBRE> --repo GoPoli/<repo>`):
 
 | Secret | Ejemplo | Descripción |
 | --- | --- | --- |

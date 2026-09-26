@@ -175,6 +175,6 @@ Los contenedores conservan su configuración después de borrar el `.env`: Docke
 | `DEPLOY_PATH` | Carpeta de despliegue en el servidor |
 | `ENV_FILE` | Contenido completo del `.env` de producción ([plantilla](../docker/production/.env.example)) |
 
-Se definen a nivel de organización con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`; los `packaging.yml` los heredan con `secrets: inherit`. Los pull requests desde forks nunca reciben secrets.
+Se definen a nivel de organización (con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`) o en cada uno de esos cuatro repositorios; los `packaging.yml` los heredan con `secrets: inherit`. Los pull requests desde forks nunca reciben secrets.
 
 Para fijar versiones, define `GOPOLI_API_TAG`, `GOPOLI_WEB_TAG` y `GOPOLI_DB_TAG` en `ENV_FILE` con una etiqueta `sha-<commit>` o `X.Y.Z`; revertir es volver a la etiqueta anterior y ejecutar el workflow. Guía completa: [docker/production](../docker/production/README.md).
