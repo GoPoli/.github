@@ -1,0 +1,56 @@
+services:
+  db-gopoli:
+    image: ghcr.io/gopoli/gopoli-db:latest
+    container_name: gopoli-db
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env.db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "postgresql"
+      "docker_compose_diagram.cluster": "Database Layer"
+      "docker_compose_diagram.description": "DB"
+
+  api-gopoli:
+    image: ghcr.io/gopoli/gopoli-api:latest
+    container_name: gopoli-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.api
+    depends_on:
+      db-gopoli:
+        condition: service_healthy
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "spring"
+      "docker_compose_diagram.cluster": "Backend Layer"
+      "docker_compose_diagram.description": "API REST"
+
+  web-gopoli:
+    image: ghcr.io/gopoli/gopoli-web:latest
+    container_name: gopoli-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.web
+    depends_on:
+      - api-gopoli
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "nextjs"
+      "docker_compose_diagram.cluster": "Frontend Layer"
+      "docker_compose_diagram.description": "PWA"
+
+volumes:
+  pg_data:
+
+networks:
+  network:
+    driver: bridge

@@ -1,0 +1,10 @@
+docker/**/.env
+docker/**/.env.*
+!docker/**/.env.*.example
+docker/**/docker-compose.override.yml
+*.dump
+*.backup
+.idea
+.vscode
+.DS_Store
+Thumbs.db

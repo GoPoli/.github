@@ -1,0 +1,66 @@
+services:
+  db-gopoli:
+    image: ghcr.io/gopoli/gopoli-db:latest
+    container_name: gopoli-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=gopoli
+      - POSTGRES_USER=gopoli
+      - POSTGRES_PASSWORD=gopoli
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "postgresql"
+      "docker_compose_diagram.cluster": "Database Layer"
+      "docker_compose_diagram.description": "DB"
+
+  api-gopoli:
+    image: ghcr.io/gopoli/gopoli-api:latest
+    container_name: gopoli-api
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-gopoli:5432/gopoli
+      - SPRING_DATASOURCE_USERNAME=gopoli
+      - SPRING_DATASOURCE_PASSWORD=gopoli
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=false
+      - SPRING_JPA_FORMAT_SQL=false
+      - GOPOLI_JWT_SECRET=gopoli-demo-secret-solo-para-demostraciones-locales
+      - GOPOLI_JWT_EXPIRATION_HOURS=168
+    depends_on:
+      db-gopoli:
+        condition: service_healthy
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "spring"
+      "docker_compose_diagram.cluster": "Backend Layer"
+      "docker_compose_diagram.description": "API REST"
+
+  web-gopoli:
+    image: ghcr.io/gopoli/gopoli-web:latest
+    container_name: gopoli-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - api-gopoli
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "nextjs"
+      "docker_compose_diagram.cluster": "Frontend Layer"
+      "docker_compose_diagram.description": "PWA"
+
+volumes:
+  pg_data:
+
+networks:
+  network:
+    driver: bridge
