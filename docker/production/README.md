@@ -55,7 +55,7 @@ sequenceDiagram
   participant D as deploy.yml
   participant S as Servidor
   R->>G: packaging.yml publica la imagen
-  R->>D: llama al workflow reutilizable
+  R->>D: deploy.yml del repo llama al workflow reutilizable
   D->>D: genera .env desde ENV_FILE y valida el compose
   D->>S: SSH: compose.yaml + .env (600)
   S->>G: docker compose pull
@@ -65,9 +65,11 @@ sequenceDiagram
 
 El workflow [`deploy.yml`](../../.github/workflows/deploy.yml) se ejecuta:
 
-* Al final de `packaging.yml` en GoPoli-API, GoPoli-Web y GoPoli-DB, cuando el push es a `main`.
-* Cuando cambia `docker/production/compose.yaml` en este repositorio.
-* A mano, desde **Actions → Deploy to Production → Run workflow**.
+* Desde el `deploy.yml` de GoPoli-API, GoPoli-Web y GoPoli-DB, cuando su `packaging.yml` publica la imagen desde `main`.
+* Con cualquier push a `main` de este repositorio.
+* A mano, desde **Actions → Deploy to Production → Run workflow** en cualquiera de los cuatro repositorios.
+
+Cada ejecución despliega la app completa: descarga las tres imágenes y recrea solo los contenedores cuya imagen o configuración cambió.
 
 Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
 

@@ -11,16 +11,19 @@ Cada repositorio de GoPoli es independiente: tiene su propio pipeline, sus propi
 | GoPoli-API | `maven.yml` | Push y PR a `main` | `mvn verify`: compila y ejecuta las pruebas |
 | GoPoli-API | `codeql.yml` | Push, PR y semanal | Análisis de seguridad de Java y Actions |
 | GoPoli-API | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
-| GoPoli-API | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-api` y, en `main`, despliega a producción |
+| GoPoli-API | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-api` |
+| GoPoli-API | `deploy.yml` | Publicación exitosa en `main`, manual | Despliega la app completa |
 | GoPoli-API | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
 | GoPoli-Web | `node.js.yml` | Push y PR a `main` | `pnpm install --frozen-lockfile`, lint, typecheck, pruebas y build en Node 22 y 24 |
 | GoPoli-Web | `codeql.yml` | Push, PR y semanal | Análisis de seguridad de TypeScript y Actions |
 | GoPoli-Web | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
-| GoPoli-Web | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-web` y, en `main`, despliega a producción |
+| GoPoli-Web | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-web` |
+| GoPoli-Web | `deploy.yml` | Publicación exitosa en `main`, manual | Despliega la app completa |
 | GoPoli-Web | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
 | GoPoli-DB | `ci.yml` | Push y PR a `main` | Construye la imagen, la arranca endurecida con y sin datos demo y valida tablas, catálogos y cuentas |
-| GoPoli-DB | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-db` y, en `main`, despliega a producción |
-| .github | `deploy.yml` | Llamado por los `packaging.yml`, cambios en `docker/production/compose.yaml`, manual | Despliega el stack de producción por SSH |
+| GoPoli-DB | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-db` |
+| GoPoli-DB | `deploy.yml` | Publicación exitosa en `main`, manual | Despliega la app completa |
+| .github | `deploy.yml` | Push a `main`, llamado desde el `deploy.yml` de cada repo, manual | Despliega el stack de producción por SSH |
 | GoPoli-Mobile | `flutter.yml` | Push y PR a `main` | `flutter analyze` y `flutter test` (repositorio archivado) |
 
 Además, **Dependabot** revisa cada semana las dependencias (Maven, pnpm mediante el ecosistema `npm`, o pub), la imagen base del `Dockerfile` y las versiones de las Actions de cada repositorio.
@@ -135,19 +138,18 @@ docker push ghcr.io/gopoli/gopoli-api:latest
 
 ## Despliegue en el servidor
 
-El despliegue es continuo: cuando `packaging.yml` publica una imagen desde `main`, llama al workflow reutilizable [`deploy.yml`](../.github/workflows/deploy.yml) de este repositorio, que actualiza el servidor por SSH.
+El despliegue es continuo y siempre es de la app completa. Cada repositorio de componente tiene su propio `deploy.yml`, que se dispara cuando `packaging.yml` termina bien en `main` y llama al workflow reutilizable [`deploy.yml`](../.github/workflows/deploy.yml) de este repositorio. Ese workflow actualiza por SSH la base, la API y la PWA a la vez. En este repositorio, cualquier push a `main` también despliega.
 
 ```mermaid
 flowchart LR
-  push["push a main
-(API, PWA o DB)"] --> pkg["packaging.yml"]
+  push["push a main<br/>(API, PWA o DB)"] --> pkg["packaging.yml"]
   pkg --> ghcr[("GHCR")]
-  pkg --> deploy["deploy.yml
-(GoPoli/.github)"]
+  pkg -->|"workflow_run: success"| caller["deploy.yml<br/>(del repo)"]
+  caller --> deploy["deploy.yml<br/>(GoPoli/.github)"]
+  gh["push a main<br/>(.github)"] --> deploy
   deploy -->|"SSH: compose.yaml + .env"| server["Servidor"]
   server -->|"docker compose pull"| ghcr
-  server --> up["up -d --wait
-borra .env"]
+  server --> up["up -d --wait<br/>borra .env"]
   deploy --> health["GET /health público"]
 ```
 
@@ -175,6 +177,6 @@ Los contenedores conservan su configuración después de borrar el `.env`: Docke
 | `DEPLOY_PATH` | Carpeta de despliegue en el servidor |
 | `ENV_FILE` | Contenido completo del `.env` de producción ([plantilla](../docker/production/.env.example)) |
 
-Se definen a nivel de organización (con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`) o en cada uno de esos cuatro repositorios; los `packaging.yml` los heredan con `secrets: inherit`. Los pull requests desde forks nunca reciben secrets.
+Se definen a nivel de organización (con acceso para `.github`, `GoPoli-API`, `GoPoli-Web` y `GoPoli-DB`) o en cada uno de esos cuatro repositorios; el `deploy.yml` de cada repo los pasa al workflow reutilizable con `secrets: inherit`. Los pull requests desde forks nunca reciben secrets.
 
 Para fijar versiones, define `GOPOLI_API_TAG`, `GOPOLI_WEB_TAG` y `GOPOLI_DB_TAG` en `ENV_FILE` con una etiqueta `sha-<commit>` o `X.Y.Z`; revertir es volver a la etiqueta anterior y ejecutar el workflow. Guía completa: [docker/production](../docker/production/README.md).
