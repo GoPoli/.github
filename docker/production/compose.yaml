@@ -24,8 +24,11 @@ services:
     container_name: gopoli-db
     profiles:
       - db
-    env_file:
-      - .env.db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gopoli}
+      POSTGRES_USER: ${POSTGRES_USER:-gopoli}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      GOPOLI_SEED_DEMO: ${GOPOLI_SEED_DEMO:-false}
     volumes:
       - pg_data:/var/lib/postgresql/data
     tmpfs:
@@ -52,8 +55,20 @@ services:
     container_name: gopoli-api
     ports:
       - "${GOPOLI_BIND_ADDRESS:-127.0.0.1}:${GOPOLI_API_PORT:-8080}:8080"
-    env_file:
-      - .env.api
+    environment:
+      PORT: "8080"
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/Bogota}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://db-gopoli:5432/gopoli}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-gopoli}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_FORMAT_SQL: "false"
+      GOPOLI_JWT_SECRET: ${GOPOLI_JWT_SECRET:-}
+      GOPOLI_JWT_EXPIRATION_HOURS: ${GOPOLI_JWT_EXPIRATION_HOURS:-168}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
     tmpfs:
       - /tmp
     depends_on:
@@ -81,8 +96,8 @@ services:
     container_name: gopoli-web
     ports:
       - "${GOPOLI_BIND_ADDRESS:-127.0.0.1}:${GOPOLI_WEB_PORT:-3000}:3000"
-    env_file:
-      - .env.web
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     tmpfs:
       - /tmp
       - /app/.next:uid=1000,gid=1000,mode=0755,size=128m

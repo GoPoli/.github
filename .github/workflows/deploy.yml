@@ -1,0 +1,167 @@
+name: Deploy to Production
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "docker/production/compose.yaml"
+      - ".github/workflows/deploy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check Deployment Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      configured: ${{ steps.secrets.outputs.configured }}
+
+    steps:
+      - name: Verify required secrets
+        id: secrets
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_KEY: ${{ secrets.SERVER_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          missing=""
+          for name in SERVER_HOST SERVER_PORT SERVER_USER SERVER_KEY DEPLOY_PATH ENV_FILE; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::notice::Despliegue omitido: faltan los secrets$missing."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy to Server
+    needs: check
+    if: needs.check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: gopoli-production
+      cancel-in-progress: false
+
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_PORT: ${{ secrets.SERVER_PORT }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_KEY: ${{ secrets.SERVER_KEY }}
+      SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+
+    steps:
+      - name: Checkout deployment configuration
+        uses: actions/checkout@v5
+        with:
+          repository: GoPoli/.github
+          ref: main
+          sparse-checkout: docker/production
+          persist-credentials: false
+
+      - name: Generate temporary .env file
+        working-directory: docker/production
+        run: |
+          umask 077
+          printf '%s\n' "$ENV_FILE" | tr -d '\r' > .env
+          value() { sed -n "s/^$1=//p" .env | tail -n 1; }
+          for key in GOPOLI_JWT_SECRET CORS_ALLOWED_ORIGINS NEXT_PUBLIC_API_URL; do
+            [ -n "$(value "$key")" ] || { echo "::error::ENV_FILE no define $key."; exit 1; }
+          done
+          if [ "$(value GOPOLI_JWT_SECRET | wc -c)" -le 32 ]; then
+            echo "::error::GOPOLI_JWT_SECRET debe tener al menos 32 caracteres."
+            exit 1
+          fi
+          if [[ ",$(value COMPOSE_PROFILES)," == *",db,"* && -z "$(value POSTGRES_PASSWORD)" ]]; then
+            echo "::error::ENV_FILE activa el perfil db pero no define POSTGRES_PASSWORD."
+            exit 1
+          fi
+          docker compose --env-file .env -f compose.yaml config --quiet
+          echo "API_URL=$(value NEXT_PUBLIC_API_URL)" >> "$GITHUB_ENV"
+
+      - name: Configure SSH access
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SERVER_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$SERVER_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SERVER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::SERVER_KNOWN_HOSTS no está definido; se confía en la llave que publique el servidor."
+            ssh-keyscan -p "$SERVER_PORT" -H "$SERVER_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host gopoli-server
+            HostName $SERVER_HOST
+            Port $SERVER_PORT
+            User $SERVER_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ServerAliveInterval 30
+          EOF
+
+      - name: Transfer compose.yaml and .env
+        working-directory: docker/production
+        run: |
+          tar -czf - compose.yaml .env | ssh gopoli-server \
+            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \
+             \$S install -d -m 750 '$DEPLOY_PATH' && \
+             \$S tar -xzf - --no-same-owner -C '$DEPLOY_PATH' && \
+             \$S chmod 600 '$DEPLOY_PATH/.env' && \$S chmod 644 '$DEPLOY_PATH/compose.yaml'"
+
+      - name: Deploy to server
+        run: |
+          ssh gopoli-server \
+            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \$S env DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          cleanup() {
+            rm -f .env
+            echo "Archivo .env eliminado del servidor."
+          }
+          trap cleanup EXIT
+
+          exec 9>/var/lock/gopoli-deploy.lock
+          flock -w 600 9
+
+          echo "Descargando imágenes publicadas..."
+          docker compose -p gopoli pull --quiet
+
+          echo "Aplicando cambios..."
+          docker compose -p gopoli up -d --remove-orphans --wait --wait-timeout 300
+
+          docker compose -p gopoli ps --format '{{.Name}}: {{.Status}}'
+          docker image prune -f >/dev/null
+          echo "Despliegue completado."
+          EOF
+
+      - name: Verify public health
+        run: |
+          for _ in $(seq 1 12); do
+            if curl -fsS --max-time 10 "$API_URL/health"; then
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::La API no respondió en $API_URL/health."
+          exit 1
+
+      - name: Remove local credentials
+        if: always()
+        run: rm -f ~/.ssh/deploy_key docker/production/.env
