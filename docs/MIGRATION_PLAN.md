@@ -1,5 +1,8 @@
 # Plan de migración: GoPoli → Next.js PWA (completado)
 
+> [!NOTE]
+> Las rutas de este documento corresponden a la estructura de carpetas usada durante la migración. Hoy cada una es un repositorio de la organización: `web/` → [GoPoli-Web](https://github.com/GoPoli/GoPoli-Web), `backend/` → [GoPoli-API](https://github.com/GoPoli/GoPoli-API), y los scripts y guías de base de datos → [GoPoli-DB](https://github.com/GoPoli/GoPoli-DB).
+
 Documento de referencia tras migrar el cliente a la PWA. El stack actual es **Next.js (`web/`) + Spring Boot (`backend/`) + PostgreSQL**. El cliente móvil anterior (Flutter en `frontend/`) ya no forma parte del producto documentado.
 
 ---
@@ -88,7 +91,7 @@ util/         VehicleValidator
 
 **No existe en producto:** recuperación de contraseña, onboarding aparte, pagos, notificaciones push, pantallas de admin.
 
-Detalle de arranque local y PWA: [`web/README.md`](web/README.md). Despliegue: [`web/DEPLOYMENT.md`](web/DEPLOYMENT.md).
+Detalle de arranque local y PWA: [GoPoli-Web · README](https://github.com/GoPoli/GoPoli-Web#readme). Despliegue: [GoPoli-Web · DEPLOYMENT](https://github.com/GoPoli/GoPoli-Web/blob/main/docs/DEPLOYMENT.md).
 
 ---
 
