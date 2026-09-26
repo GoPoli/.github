@@ -13,15 +13,16 @@ Cada repositorio de GoPoli es independiente: tiene su propio pipeline, sus propi
 | GoPoli-API | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
 | GoPoli-API | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-api` |
 | GoPoli-API | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
-| GoPoli-Web | `node.js.yml` | Push y PR a `main` | Lint, typecheck, pruebas y build en Node 22 y 24 |
+| GoPoli-Web | `node.js.yml` | Push y PR a `main` | `pnpm install --frozen-lockfile`, lint, typecheck, pruebas y build en Node 22 y 24 |
 | GoPoli-Web | `codeql.yml` | Push, PR y semanal | Análisis de seguridad de TypeScript y Actions |
 | GoPoli-Web | `dependency-review.yml` | PR a `main` | Revisa vulnerabilidades en dependencias nuevas |
 | GoPoli-Web | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-web` |
 | GoPoli-Web | `stale.yml` | Diario | Marca y cierra issues y PRs inactivos |
-| GoPoli-DB | `ci.yml` | Push y PR a `main` | Construye la imagen, la arranca y valida tablas y seed |
+| GoPoli-DB | `ci.yml` | Push y PR a `main` | Construye la imagen, la arranca endurecida con y sin datos demo y valida tablas, catálogos y cuentas |
 | GoPoli-DB | `packaging.yml` | Push a `main`, tags, manual | Publica `ghcr.io/gopoli/gopoli-db` |
+| GoPoli-Mobile | `flutter.yml` | Push y PR a `main` | `flutter analyze` y `flutter test` (repositorio archivado) |
 
-Además, **Dependabot** revisa cada semana las dependencias (Maven o npm), la imagen base del `Dockerfile` y las versiones de las Actions de cada repositorio.
+Además, **Dependabot** revisa cada semana las dependencias (Maven, pnpm mediante el ecosistema `npm`, o pub), la imagen base del `Dockerfile` y las versiones de las Actions de cada repositorio.
 
 ---
 
@@ -38,7 +39,7 @@ flowchart LR
   ghcr --> envs["docker/ · kubernetes/ · nube"]
 ```
 
-`packaging.yml` usa el `Dockerfile` del repositorio, por lo que la imagen publicada es exactamente la que se construye en local. La autenticación con GHCR usa el `GITHUB_TOKEN` del workflow: **no hay que configurar secretos**.
+`packaging.yml` usa el `Dockerfile` del repositorio, por lo que la imagen publicada es exactamente la que se construye en local. Cada imagen se publica con su **SBOM** y una **atestación de procedencia** (`provenance: mode=max`), visibles en GHCR. La autenticación con GHCR usa el `GITHUB_TOKEN` del workflow: **no hay que configurar secretos**.
 
 ### Etiquetas
 
@@ -87,7 +88,7 @@ Después del primer push a `main` aparecerán tres paquetes en **GoPoli → Pack
 - Requerir que pasen los checks de estado:
   - GoPoli-API: `Build and Test`
   - GoPoli-Web: `Build and Test (Node 22.x)`
-  - GoPoli-DB: `Build and Validate Image`
+  - GoPoli-DB: `Build and Validate Image (demo=false)` y `Build and Validate Image (demo=true)`
 - Bloquear force pushes.
 
 Así `packaging.yml` solo publica código que ya pasó la CI.
@@ -128,3 +129,20 @@ docker push ghcr.io/gopoli/gopoli-api:latest
 ```
 
 `GHCR_TOKEN` es un token personal (classic) con el permiso `write:packages`, o un token *fine-grained* con acceso de escritura a los paquetes de la organización.
+
+---
+
+## Despliegue en el servidor
+
+El servidor de producción no recibe credenciales de GitHub: descarga imágenes públicas de GHCR y el `docker-compose.yml` publicado en este repositorio. Los secretos (`.env*`) viven solo en el servidor con permisos `600`.
+
+```mermaid
+flowchart LR
+  main["push a main"] --> ghcr[("GHCR")]
+  ops["Operador en el servidor"] --> upd["update_gopoli.sh"]
+  upd -->|"curl"| compose["docker-compose.yml publicado"]
+  upd -->|"docker compose pull"| ghcr
+  upd --> up["up -d + verificación de salud"]
+```
+
+Para fijar versiones, define `GOPOLI_API_TAG`, `GOPOLI_WEB_TAG` y `GOPOLI_DB_TAG` en el `.env` del servidor con una etiqueta `sha-<commit>` o `X.Y.Z`; revertir es volver a la etiqueta anterior y ejecutar el script. Guía completa: [docker/production](../docker/production/README.md).

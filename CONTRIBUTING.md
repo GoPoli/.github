@@ -49,19 +49,29 @@ Co-authored-by: Nombre Apellido <correo@ejemplo.com>
 ### GoPoli-API
 
 - Ejecuta `./mvnw verify` antes de abrir el pull request.
-- Cubre con pruebas unitarias las reglas de negocio nuevas (`util/`, `security/`).
+- Cubre con pruebas unitarias las reglas de negocio nuevas (`policy/`, `security/`) y los controladores que cambies.
 - Toda configuración nueva se expone como variable de entorno en `application.properties` y se documenta en el README.
 
 ### GoPoli-Web
 
-- Ejecuta `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`.
+- Ejecuta `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build`.
+- Instala dependencias con `pnpm install`; el `pnpm-lock.yaml` se versiona y la CI usa `--frozen-lockfile`.
 - Cada dominio vive en `src/features/<dominio>` con su vista, su cliente HTTP y sus tipos.
 - Nunca guardes el JWT en `localStorage` ni pongas secretos en variables `NEXT_PUBLIC_*`.
 
 ### GoPoli-DB
 
-- Los cambios de esquema van en `init/` y deben mantenerse alineados con las entidades JPA de la API.
-- El workflow de CI levanta la imagen y valida tablas y seed; mantenlo en verde.
+- GoPoli-DB es la fuente de verdad del esquema: los cambios van en `init/01_schema.sql` y la API solo lo valida (`ddl-auto=validate`).
+- Los catálogos van en `init/02_catalogs.sql` y los datos de ejemplo en `demo/demo_data.sql`, nunca mezclados.
+- El workflow de CI levanta la imagen con y sin datos de demostración; mantenlo en verde.
+
+## Idioma
+
+| Elemento | Idioma |
+| --- | --- |
+| Código, identificadores, nombres de archivos, rutas y tablas | Inglés |
+| Textos de la interfaz, mensajes de error de la API y logs | Español (Colombia) |
+| Comentarios | Español, solo cuando el porqué no es evidente |
 
 ## Documentación
 

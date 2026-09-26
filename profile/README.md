@@ -39,8 +39,9 @@ GoPoli junta estudiantes del Politécnico Colombiano Jaime Isaza Cadavid que van
 | --- | --- | --- | --- |
 | [**GoPoli-Web**](https://github.com/GoPoli/GoPoli-Web) | PWA Next.js: pantallas, mapa y sesión en el navegador | `ghcr.io/gopoli/gopoli-web` | [![Node.js CI](https://github.com/GoPoli/GoPoli-Web/actions/workflows/node.js.yml/badge.svg)](https://github.com/GoPoli/GoPoli-Web/actions/workflows/node.js.yml) |
 | [**GoPoli-API**](https://github.com/GoPoli/GoPoli-API) | API REST Spring Boot: cuentas, viajes, chat y agenda | `ghcr.io/gopoli/gopoli-api` | [![Java CI](https://github.com/GoPoli/GoPoli-API/actions/workflows/maven.yml/badge.svg)](https://github.com/GoPoli/GoPoli-API/actions/workflows/maven.yml) |
-| [**GoPoli-DB**](https://github.com/GoPoli/GoPoli-DB) | PostgreSQL con esquema, seed y guías de Neon | `ghcr.io/gopoli/gopoli-db` | [![Database CI](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml/badge.svg)](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml) |
+| [**GoPoli-DB**](https://github.com/GoPoli/GoPoli-DB) | PostgreSQL con esquema, catálogos y datos de demostración opcionales | `ghcr.io/gopoli/gopoli-db` | [![Database CI](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml/badge.svg)](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml) |
 | [**.github**](https://github.com/GoPoli/.github) | Entornos Docker y Kubernetes, manuales y archivos de comunidad | — | — |
+| [**GoPoli-Mobile**](https://github.com/GoPoli/GoPoli-Mobile) | App Flutter original (archivada), reemplazada por la PWA | — | [![Flutter CI](https://github.com/GoPoli/GoPoli-Mobile/actions/workflows/flutter.yml/badge.svg)](https://github.com/GoPoli/GoPoli-Mobile/actions/workflows/flutter.yml) |
 
 ---
 
@@ -66,7 +67,7 @@ curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker
 docker compose -p gopoli up -d
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con `demo.local@elpoli.edu.co` / `gopoli-local-dev`.
+Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co` o `pasajera.demo@elpoli.edu.co` (contraseña `gopoli-local-dev`).
 
 ---
 
@@ -135,9 +136,9 @@ stateDiagram-v2
 
 | Guía | Contenido |
 | --- | --- |
-| [Manual de instalación](https://github.com/GoPoli/.github/blob/main/docs/INSTALACION.md) | Demo, desarrollo local, Kubernetes y nube |
+| [Manual de instalación](https://github.com/GoPoli/.github/blob/main/docs/INSTALACION.md) | Demo, desarrollo local, Kubernetes, servidor propio y nube |
 | [Entornos Docker](https://github.com/GoPoli/.github/tree/main/docker) | `demo`, `dev` y `production` |
-| [Kubernetes](https://github.com/GoPoli/.github/tree/main/kubernetes) | Despliegue en Minikube |
+| [Kubernetes](https://github.com/GoPoli/.github/tree/main/kubernetes) | Despliegue endurecido en Docker Desktop o Minikube |
 | [CI/CD y GHCR](https://github.com/GoPoli/.github/blob/main/docs/CI_CD.md) | Pipelines, imágenes y configuración de la organización |
 | [Matriz de trazabilidad](https://github.com/GoPoli/.github/blob/main/docs/MATRIZ_TRAZABILIDAD_GOPOLIGO.md) | Requisitos y su implementación |
 | [Guía de contribución](https://github.com/GoPoli/.github/blob/main/CONTRIBUTING.md) | Flujo de trabajo y estándares |

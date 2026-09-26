@@ -39,8 +39,9 @@ GoPoli matches students of the Politécnico Colombiano Jaime Isaza Cadavid who a
 | --- | --- | --- | --- |
 | [**GoPoli-Web**](https://github.com/GoPoli/GoPoli-Web) | Next.js PWA: screens, map, and browser session | `ghcr.io/gopoli/gopoli-web` | [![Node.js CI](https://github.com/GoPoli/GoPoli-Web/actions/workflows/node.js.yml/badge.svg)](https://github.com/GoPoli/GoPoli-Web/actions/workflows/node.js.yml) |
 | [**GoPoli-API**](https://github.com/GoPoli/GoPoli-API) | Spring Boot REST API: accounts, trips, chat, and schedule | `ghcr.io/gopoli/gopoli-api` | [![Java CI](https://github.com/GoPoli/GoPoli-API/actions/workflows/maven.yml/badge.svg)](https://github.com/GoPoli/GoPoli-API/actions/workflows/maven.yml) |
-| [**GoPoli-DB**](https://github.com/GoPoli/GoPoli-DB) | PostgreSQL with schema, seed, and Neon guides | `ghcr.io/gopoli/gopoli-db` | [![Database CI](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml/badge.svg)](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml) |
+| [**GoPoli-DB**](https://github.com/GoPoli/GoPoli-DB) | PostgreSQL with schema, catalogs, and optional demo data | `ghcr.io/gopoli/gopoli-db` | [![Database CI](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml/badge.svg)](https://github.com/GoPoli/GoPoli-DB/actions/workflows/ci.yml) |
 | [**.github**](https://github.com/GoPoli/.github) | Docker and Kubernetes environments, manuals, and community files | — | — |
+| [**GoPoli-Mobile**](https://github.com/GoPoli/GoPoli-Mobile) | Original Flutter app (archived), replaced by the PWA | — | [![Flutter CI](https://github.com/GoPoli/GoPoli-Mobile/actions/workflows/flutter.yml/badge.svg)](https://github.com/GoPoli/GoPoli-Mobile/actions/workflows/flutter.yml) |
 
 ---
 
@@ -66,7 +67,7 @@ curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/docker
 docker compose -p gopoli up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with `demo.local@elpoli.edu.co` / `gopoli-local-dev`.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co`, or `pasajera.demo@elpoli.edu.co` (password `gopoli-local-dev`).
 
 ---
 
@@ -137,9 +138,9 @@ Guides are written in Spanish.
 
 | Guide | Content |
 | --- | --- |
-| [Installation manual](https://github.com/GoPoli/.github/blob/main/docs/INSTALACION.md) | Demo, local development, Kubernetes, and cloud |
+| [Installation manual](https://github.com/GoPoli/.github/blob/main/docs/INSTALACION.md) | Demo, local development, Kubernetes, self-hosted server, and cloud |
 | [Docker environments](https://github.com/GoPoli/.github/tree/main/docker) | `demo`, `dev`, and `production` |
-| [Kubernetes](https://github.com/GoPoli/.github/tree/main/kubernetes) | Minikube deployment |
+| [Kubernetes](https://github.com/GoPoli/.github/tree/main/kubernetes) | Hardened deployment on Docker Desktop or Minikube |
 | [CI/CD and GHCR](https://github.com/GoPoli/.github/blob/main/docs/CI_CD.md) | Pipelines, images, and organization settings |
 | [Contributing guide](https://github.com/GoPoli/.github/blob/main/CONTRIBUTING.md) | Workflow and standards |
 
