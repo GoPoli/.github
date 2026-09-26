@@ -75,14 +75,10 @@ Pasos a realizar una vez que los repositorios estén en GitHub.
 
 ### 2. Paquetes de GHCR
 
-Después del primer push a `main` aparecerán tres paquetes en **GoPoli → Packages**. Para cada uno:
+Los tres paquetes (`gopoli-db`, `gopoli-api` y `gopoli-web`) son **públicos**: cualquiera los descarga sin autenticarse, lo que necesitan la demo de un solo comando, Kubernetes y el servidor de producción. En **GoPoli → Packages → Package settings** de cada uno:
 
-1. Abre el paquete → **Package settings**.
-2. Verifica en *Manage Actions access* que el repositorio de origen tenga rol **Write** (se asigna solo al publicar desde su workflow).
-3. En *Danger Zone* → **Change visibility** → **Public**, si quieres que cualquiera pueda descargar las imágenes sin autenticarse (necesario para la demo de un solo comando).
-
-> [!NOTE]
-> Para permitir paquetes públicos, la organización debe tenerlo habilitado en **Organization settings → Packages → Package creation**.
+- *Manage Actions access*: el repositorio de origen debe tener rol **Write** (se asigna solo al publicar desde su workflow).
+- *Danger Zone → Change visibility*: debe seguir en **Public**.
 
 ### 3. Protección de la rama `main`
 

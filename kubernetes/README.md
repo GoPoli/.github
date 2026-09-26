@@ -128,15 +128,4 @@ kubectl -n gopoli rollout restart deploy/web-gopoli
 
 ## **Imágenes locales**
 
-Los `Deployment` usan `imagePullPolicy: IfNotPresent`. En Docker Desktop el clúster comparte las imágenes del motor de Docker, así que una imagen construida en local (`docker build -t ghcr.io/gopoli/gopoli-api:latest .`) se usa sin publicarla. En Minikube cárgala con `minikube image load ghcr.io/gopoli/gopoli-api:latest`.
-
-## **Paquetes privados**
-
-Si las imágenes de GHCR son privadas, crea un secreto de registro y referéncialo en cada `Deployment` con `imagePullSecrets`:
-
-```bash
-kubectl -n gopoli create secret docker-registry ghcr \
-  --docker-server=ghcr.io \
-  --docker-username=<usuario> \
-  --docker-password=<token-read-packages>
-```
+Las imágenes de GHCR son públicas, así que el clúster las descarga sin credenciales. Los `Deployment` usan `imagePullPolicy: IfNotPresent`. En Docker Desktop el clúster comparte las imágenes del motor de Docker, así que una imagen construida en local (`docker build -t ghcr.io/gopoli/gopoli-api:latest .`) se usa sin publicarla. En Minikube cárgala con `minikube image load ghcr.io/gopoli/gopoli-api:latest`.
