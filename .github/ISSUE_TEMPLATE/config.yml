@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Reportar una vulnerabilidad
+    url: https://github.com/GoPoli/.github/blob/main/SECURITY.md
+    about: No abras issues públicos para problemas de seguridad; sigue la política de seguridad.
