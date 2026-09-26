@@ -63,9 +63,7 @@ Cada componente vive en su propio repositorio, tiene su propia CI y publica su i
 ## Probarlo en un minuto
 
 ```bash
-mkdir gopoli-demo && cd gopoli-demo
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
-docker compose up -d
+curl -fsSL --create-dirs -o gopoli-demo/compose.yaml https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml && docker compose -f gopoli-demo/compose.yaml up -d
 ```
 
 Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co` o `pasajera.demo@elpoli.edu.co` (contraseña `gopoli-local-dev`).

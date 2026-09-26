@@ -39,9 +39,7 @@ flowchart LR
 ## A. Demo con Docker
 
 ```bash
-mkdir gopoli-demo && cd gopoli-demo
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
-docker compose up -d
+curl -fsSL --create-dirs -o gopoli-demo/compose.yaml https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml && docker compose -f gopoli-demo/compose.yaml up -d
 ```
 
 | Servicio | URL |
@@ -195,5 +193,4 @@ La última llamada devuelve `{"token": "...", "user": {...}}`. Con el token, `GE
 | La API queda `unhealthy` con `password authentication failed` en el log | El volumen de PostgreSQL ya existía con otra contraseña: la base solo toma `POSTGRES_PASSWORD` al crearse | Usa la contraseña original o recrea el volumen de ese entorno con `docker compose down -v` |
 | `Found multiple config files` | Hay un `docker-compose.yml` viejo junto al `compose.yaml` | Ejecuta cada entorno en su propia carpeta o borra el archivo antiguo |
 | Los cambios de `init/` no se aplican | Los scripts solo corren con el volumen vacío | `docker compose down -v` y volver a levantar |
-| `denied` al descargar imágenes de GHCR | Paquetes privados | `docker login ghcr.io` con un token `read:packages` o hacer públicos los paquetes |
 | La PWA no se instala | Falta HTTPS | Publica la PWA con HTTPS (localhost está exento) |

@@ -15,14 +15,15 @@ Esta guía describe cómo levantar GoPoli completo en tu equipo con Docker Compo
 ## **Opción 1: Ejecución Rápida con un Solo Comando**
 
 ```bash
-mkdir gopoli-demo && cd gopoli-demo && curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose up -d
+curl -fsSL --create-dirs -o gopoli-demo/compose.yaml https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml && docker compose -f gopoli-demo/compose.yaml up -d
 ```
 
 Este comando:
 
-1. **Crea** la carpeta `gopoli-demo`, para no mezclarse con otros archivos de Compose.
-2. **Descarga** el `compose.yaml` del entorno demo.
-3. **Levanta** los contenedores en segundo plano (`-d`) bajo el proyecto `gopoli-demo`, descargando siempre la última versión publicada de las imágenes.
+1. **Descarga** el `compose.yaml` del entorno demo en la carpeta `gopoli-demo` (la crea si no existe), para no mezclarse con otros archivos de Compose.
+2. **Levanta** los contenedores en segundo plano (`-d`) bajo el proyecto `gopoli-demo`, descargando siempre la última versión publicada de las imágenes.
+
+Funciona igual en bash, zsh y PowerShell 7, y se puede repetir: la segunda vez solo actualiza el archivo y las imágenes.
 
 Servicios disponibles:
 
@@ -41,7 +42,7 @@ Inicia sesión con cualquiera de las cuentas de demostración (contraseña `gopo
 Para detener todo:
 
 ```bash
-docker compose down
+docker compose -f gopoli-demo/compose.yaml down
 ```
 
 ---
@@ -51,8 +52,9 @@ docker compose down
 #### **Paso 1: Descargar el archivo de Compose**
 
 ```bash
-mkdir gopoli-demo && cd gopoli-demo
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
+mkdir gopoli-demo
+cd gopoli-demo
+curl -fsSL -o compose.yaml https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml
 ```
 
 #### **Paso 2: Descargar las imágenes**
@@ -63,8 +65,7 @@ docker pull ghcr.io/gopoli/gopoli-api:latest
 docker pull ghcr.io/gopoli/gopoli-web:latest
 ```
 
-> [!TIP]
-> Si los paquetes de la organización son privados, inicia sesión antes con `docker login ghcr.io` usando un token de GitHub con permiso `read:packages`.
+Las imágenes son públicas: no hace falta iniciar sesión en GHCR.
 
 #### **Paso 3: Iniciar los servicios**
 
