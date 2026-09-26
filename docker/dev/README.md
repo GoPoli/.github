@@ -48,19 +48,21 @@ Luego reemplaza los valores entre `< >`:
 ## **Ejecución del Entorno**
 
 ```bash
-docker compose -p gopoli up -d
+docker compose up -d
 ```
+
+El archivo fija el proyecto `gopoli-dev`, así que su volumen (`gopoli-dev_pg_data`) y sus contenedores (`gopoli-dev-*`) son independientes del demo y de producción.
 
 Para detenerlo:
 
 ```bash
-docker compose -p gopoli down
+docker compose down
 ```
 
 Para ver los logs de un servicio:
 
 ```bash
-docker compose -p gopoli logs -f api-gopoli
+docker compose logs -f api-gopoli
 ```
 
 ---
@@ -72,7 +74,7 @@ docker compose -p gopoli logs -f api-gopoli
 ```yaml
 db-gopoli:
   image: ghcr.io/gopoli/gopoli-db:latest
-  container_name: gopoli-db
+  container_name: gopoli-dev-db
   ports:
     - "127.0.0.1:5432:5432"
   env_file:
@@ -91,7 +93,7 @@ db-gopoli:
 ```yaml
 api-gopoli:
   image: ghcr.io/gopoli/gopoli-api:latest
-  container_name: gopoli-api
+  container_name: gopoli-dev-api
   ports:
     - "127.0.0.1:8080:8080"
   env_file:
@@ -110,7 +112,7 @@ api-gopoli:
 ```yaml
 web-gopoli:
   image: ghcr.io/gopoli/gopoli-web:latest
-  container_name: gopoli-web
+  container_name: gopoli-dev-web
   ports:
     - "127.0.0.1:3000:3000"
   env_file:
@@ -137,7 +139,7 @@ Los puertos se publican solo en `127.0.0.1`. Los contenedores corren con el mism
 Para trabajar en un solo componente con recarga en caliente, levanta el resto con Docker y ejecuta ese componente desde su repositorio:
 
 ```bash
-docker compose -p gopoli up -d db-gopoli api-gopoli
+docker compose up -d db-gopoli api-gopoli
 ```
 
 Y en el repositorio de la PWA:

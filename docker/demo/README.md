@@ -15,13 +15,14 @@ Esta guía describe cómo levantar GoPoli completo en tu equipo con Docker Compo
 ## **Opción 1: Ejecución Rápida con un Solo Comando**
 
 ```bash
-curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose -p gopoli up -d
+mkdir gopoli-demo && cd gopoli-demo && curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose up -d
 ```
 
 Este comando:
 
-1. **Descarga** el `compose.yaml` del entorno demo.
-2. **Levanta** los contenedores en segundo plano (`-d`) bajo el proyecto `gopoli`.
+1. **Crea** la carpeta `gopoli-demo`, para no mezclarse con otros archivos de Compose.
+2. **Descarga** el `compose.yaml` del entorno demo.
+3. **Levanta** los contenedores en segundo plano (`-d`) bajo el proyecto `gopoli-demo`, descargando siempre la última versión publicada de las imágenes.
 
 Servicios disponibles:
 
@@ -40,7 +41,7 @@ Inicia sesión con cualquiera de las cuentas de demostración (contraseña `gopo
 Para detener todo:
 
 ```bash
-docker compose -p gopoli down
+docker compose down
 ```
 
 ---
@@ -50,6 +51,7 @@ docker compose -p gopoli down
 #### **Paso 1: Descargar el archivo de Compose**
 
 ```bash
+mkdir gopoli-demo && cd gopoli-demo
 curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
 ```
 
@@ -67,16 +69,16 @@ docker pull ghcr.io/gopoli/gopoli-web:latest
 #### **Paso 3: Iniciar los servicios**
 
 ```bash
-docker compose -p gopoli up -d
+docker compose up -d
 ```
 
-- **`-p gopoli`** da nombre al proyecto y, con él, a la red y al volumen.
+- El archivo fija el proyecto `gopoli-demo`: la red, el volumen y los contenedores (`gopoli-demo-*`) no chocan con los entornos dev ni producción en el mismo equipo.
 - **`up -d`** levanta los contenedores en segundo plano.
 
 #### **Paso 4: Verificar**
 
 ```bash
-docker compose -p gopoli ps
+docker compose ps
 curl http://localhost:8080/health
 curl http://localhost:8080/programs
 ```
@@ -86,13 +88,13 @@ La base aparece como `healthy` cuando terminó de crear el esquema; recién ento
 #### **Paso 5: Detener y limpiar**
 
 ```bash
-docker compose -p gopoli down
+docker compose down
 ```
 
 Para borrar también los datos de PostgreSQL:
 
 ```bash
-docker compose -p gopoli down -v
+docker compose down -v
 ```
 
 ---
@@ -104,7 +106,7 @@ docker compose -p gopoli down -v
 ```yaml
 db-gopoli:
   image: ghcr.io/gopoli/gopoli-db:latest
-  container_name: gopoli-db
+  container_name: gopoli-demo-db
   ports:
     - "127.0.0.1:5432:5432"
   environment:
@@ -124,7 +126,7 @@ db-gopoli:
 ```yaml
 api-gopoli:
   image: ghcr.io/gopoli/gopoli-api:latest
-  container_name: gopoli-api
+  container_name: gopoli-demo-api
   ports:
     - "127.0.0.1:8080:8080"
   depends_on:
@@ -140,7 +142,7 @@ api-gopoli:
 ```yaml
 web-gopoli:
   image: ghcr.io/gopoli/gopoli-web:latest
-  container_name: gopoli-web
+  container_name: gopoli-demo-web
   ports:
     - "127.0.0.1:3000:3000"
   environment:

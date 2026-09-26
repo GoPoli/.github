@@ -1,4 +1,4 @@
-name: gopoli
+name: gopoli-dev
 
 x-hardening: &hardening
   restart: unless-stopped
@@ -19,7 +19,7 @@ services:
   db-gopoli:
     <<: *hardening
     image: ghcr.io/gopoli/gopoli-db:latest
-    container_name: gopoli-db
+    container_name: gopoli-dev-db
     ports:
       - "127.0.0.1:5432:5432"
     env_file:
@@ -42,7 +42,7 @@ services:
   api-gopoli:
     <<: *hardening
     image: ghcr.io/gopoli/gopoli-api:latest
-    container_name: gopoli-api
+    container_name: gopoli-dev-api
     ports:
       - "127.0.0.1:8080:8080"
     env_file:
@@ -65,7 +65,7 @@ services:
   web-gopoli:
     <<: *hardening
     image: ghcr.io/gopoli/gopoli-web:latest
-    container_name: gopoli-web
+    container_name: gopoli-dev-web
     ports:
       - "127.0.0.1:3000:3000"
     env_file:

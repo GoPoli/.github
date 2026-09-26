@@ -39,8 +39,9 @@ flowchart LR
 ## A. Demo con Docker
 
 ```bash
+mkdir gopoli-demo && cd gopoli-demo
 curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
-docker compose -p gopoli up -d
+docker compose up -d
 ```
 
 | Servicio | URL |
@@ -116,7 +117,7 @@ Abre [http://localhost:3000](http://localhost:3000).
 No hace falta ejecutar todo desde código. Por ejemplo, para trabajar solo en la PWA, levanta la base y la API con las imágenes publicadas usando el entorno [docker/dev](../docker/dev/README.md) (con sus archivos `.env` configurados):
 
 ```bash
-docker compose -p gopoli up -d db-gopoli api-gopoli
+docker compose up -d db-gopoli api-gopoli
 ```
 
 y ejecuta `pnpm dev` en GoPoli-Web.
@@ -191,6 +192,8 @@ La última llamada devuelve `{"token": "...", "user": {...}}`. Con el token, `GE
 | La API falla con `WeakKeyException` | `GOPOLI_JWT_SECRET` con menos de 32 caracteres | Usa un secreto más largo (`openssl rand -base64 48`) |
 | La API no conecta con Neon | Falta `?sslmode=require` o se usó la URL `postgres://` | Usa formato JDBC con `sslmode=require` y el host con pooler |
 | La PWA carga pero no inicia sesión | `NEXT_PUBLIC_API_URL` apunta a `api-gopoli` o a un puerto incorrecto | Usa una URL que resuelva el navegador (`http://localhost:8080` o el dominio público) |
+| La API queda `unhealthy` con `password authentication failed` en el log | El volumen de PostgreSQL ya existía con otra contraseña: la base solo toma `POSTGRES_PASSWORD` al crearse | Usa la contraseña original o recrea el volumen de ese entorno con `docker compose down -v` |
+| `Found multiple config files` | Hay un `docker-compose.yml` viejo junto al `compose.yaml` | Ejecuta cada entorno en su propia carpeta o borra el archivo antiguo |
 | Los cambios de `init/` no se aplican | Los scripts solo corren con el volumen vacío | `docker compose down -v` y volver a levantar |
 | `denied` al descargar imágenes de GHCR | Paquetes privados | `docker login ghcr.io` con un token `read:packages` o hacer públicos los paquetes |
 | La PWA no se instala | Falta HTTPS | Publica la PWA con HTTPS (localhost está exento) |

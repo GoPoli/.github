@@ -63,8 +63,9 @@ Each component lives in its own repository, runs its own CI, and publishes its i
 ## Try it in a minute
 
 ```bash
+mkdir gopoli-demo && cd gopoli-demo
 curl -L https://raw.githubusercontent.com/GoPoli/.github/main/docker/demo/compose.yaml -o compose.yaml
-docker compose -p gopoli up -d
+docker compose up -d
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and sign in with `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co`, or `pasajera.demo@elpoli.edu.co` (password `gopoli-local-dev`).
