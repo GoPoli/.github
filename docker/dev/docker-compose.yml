@@ -1,48 +1,86 @@
+name: gopoli
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  networks:
+    - network
+
 services:
   db-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-db:latest
     container_name: gopoli-db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     env_file:
       - .env.db
     volumes:
       - pg_data:/var/lib/postgresql/data
-    networks:
-      - network
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql:mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     labels:
       "docker_compose_diagram.icon": "postgresql"
       "docker_compose_diagram.cluster": "Database Layer"
       "docker_compose_diagram.description": "DB"
 
   api-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-api:latest
     container_name: gopoli-api
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     env_file:
       - .env.api
+    tmpfs:
+      - /tmp
     depends_on:
       db-gopoli:
         condition: service_healthy
-    networks:
-      - network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
     labels:
       "docker_compose_diagram.icon": "spring"
       "docker_compose_diagram.cluster": "Backend Layer"
       "docker_compose_diagram.description": "API REST"
 
   web-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-web:latest
     container_name: gopoli-web
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env.web
+    tmpfs:
+      - /tmp
+      - /app/.next:uid=1000,gid=1000,mode=0755,size=128m
     depends_on:
-      - api-gopoli
-    networks:
-      - network
+      api-gopoli:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
     labels:
       "docker_compose_diagram.icon": "nextjs"
       "docker_compose_diagram.cluster": "Frontend Layer"

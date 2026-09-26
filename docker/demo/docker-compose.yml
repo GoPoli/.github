@@ -1,58 +1,97 @@
+name: gopoli
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  networks:
+    - network
+
 services:
   db-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-db:latest
     container_name: gopoli-db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
-      - POSTGRES_DB=gopoli
-      - POSTGRES_USER=gopoli
-      - POSTGRES_PASSWORD=gopoli
+      POSTGRES_DB: gopoli
+      POSTGRES_USER: gopoli
+      POSTGRES_PASSWORD: gopoli
+      GOPOLI_SEED_DEMO: "true"
     volumes:
       - pg_data:/var/lib/postgresql/data
-    networks:
-      - network
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql:mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     labels:
       "docker_compose_diagram.icon": "postgresql"
       "docker_compose_diagram.cluster": "Database Layer"
       "docker_compose_diagram.description": "DB"
 
   api-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-api:latest
     container_name: gopoli-api
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
-      - PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-gopoli:5432/gopoli
-      - SPRING_DATASOURCE_USERNAME=gopoli
-      - SPRING_DATASOURCE_PASSWORD=gopoli
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_JPA_SHOW_SQL=false
-      - SPRING_JPA_FORMAT_SQL=false
-      - GOPOLI_JWT_SECRET=gopoli-demo-secret-solo-para-demostraciones-locales
-      - GOPOLI_JWT_EXPIRATION_HOURS=168
+      PORT: "8080"
+      APP_TIMEZONE: America/Bogota
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-gopoli:5432/gopoli
+      SPRING_DATASOURCE_USERNAME: gopoli
+      SPRING_DATASOURCE_PASSWORD: gopoli
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      GOPOLI_JWT_SECRET: gopoli-demo-secret-solo-para-demostraciones-locales-no-usar-en-produccion
+      GOPOLI_JWT_EXPIRATION_HOURS: "168"
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    tmpfs:
+      - /tmp
     depends_on:
       db-gopoli:
         condition: service_healthy
-    networks:
-      - network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
     labels:
       "docker_compose_diagram.icon": "spring"
       "docker_compose_diagram.cluster": "Backend Layer"
       "docker_compose_diagram.description": "API REST"
 
   web-gopoli:
+    <<: *hardening
     image: ghcr.io/gopoli/gopoli-web:latest
     container_name: gopoli-web
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    tmpfs:
+      - /tmp
+      - /app/.next:uid=1000,gid=1000,mode=0755,size=128m
     depends_on:
-      - api-gopoli
-    networks:
-      - network
+      api-gopoli:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384M
     labels:
       "docker_compose_diagram.icon": "nextjs"
       "docker_compose_diagram.cluster": "Frontend Layer"
