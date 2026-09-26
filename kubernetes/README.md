@@ -1,19 +1,20 @@
-# **Despliegue de GoPoli en Kubernetes (Minikube)**
+# **Despliegue de GoPoli en Kubernetes**
 
-Esta guía describe cómo desplegar GoPoli en un clúster local de Kubernetes con **Minikube**. El manifiesto también funciona en Docker Desktop con Kubernetes activado o en cualquier clúster con un `StorageClass` por defecto.
+Esta guía describe cómo desplegar GoPoli en un clúster local de Kubernetes: **Docker Desktop** con Kubernetes activado o **Minikube**. El manifiesto funciona en cualquier clúster con un `StorageClass` por defecto.
 
 ## **Requisitos Previos**
 
-1. **Minikube**: [Instrucciones de instalación](https://minikube.sigs.k8s.io/docs/start/)
+1. Un clúster local, cualquiera de los dos:
+   - **Docker Desktop**: *Settings → Kubernetes → Enable Kubernetes*.
+   - **Minikube**: [Instrucciones de instalación](https://minikube.sigs.k8s.io/docs/start/) y `minikube start`.
 2. **kubectl**: [Instrucciones de instalación](https://kubernetes.io/docs/tasks/tools/)
-3. **Docker** (opcional): [Instrucciones de instalación](https://docs.docker.com/get-docker/)
 
-> [!NOTE]
-> Inicia Minikube antes de continuar:
->
-> ```bash
-> minikube start
-> ```
+Comprueba el contexto activo antes de aplicar:
+
+```bash
+kubectl config current-context
+kubectl get nodes
+```
 
 ---
 
@@ -21,22 +22,17 @@ Esta guía describe cómo desplegar GoPoli en un clúster local de Kubernetes co
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/GoPoli/.github/main/kubernetes/k8s-deployment.yml
+kubectl -n gopoli rollout status deploy/api-gopoli --timeout=5m
 ```
 
-Espera a que los pods estén listos:
+| Clúster | PWA | API |
+| --- | --- | --- |
+| Docker Desktop | [http://localhost:30300](http://localhost:30300) | [http://localhost:30080/health](http://localhost:30080/health) |
+| Minikube | `kubectl -n gopoli port-forward svc/web-gopoli 30300:3000` | `kubectl -n gopoli port-forward svc/api-gopoli 30080:8080` |
 
-```bash
-kubectl -n gopoli get pods -w
-```
+En Minikube cada `port-forward` ocupa una terminal; usar los mismos puertos locales (30300 y 30080) mantiene válidas la URL de la API y el origen CORS del `ConfigMap`.
 
-Expón la API y la PWA en tu equipo:
-
-```bash
-kubectl -n gopoli port-forward svc/api-gopoli 8080:8080
-kubectl -n gopoli port-forward svc/web-gopoli 3000:3000
-```
-
-Cada `port-forward` ocupa una terminal. Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con `demo.local@elpoli.edu.co` / `gopoli-local-dev`.
+Inicia sesión con `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co` o `pasajera.demo@elpoli.edu.co` (contraseña `gopoli-local-dev`).
 
 ---
 
@@ -48,30 +44,29 @@ Cada `port-forward` ocupa una terminal. Abre [http://localhost:3000](http://loca
 curl -L https://raw.githubusercontent.com/GoPoli/.github/main/kubernetes/k8s-deployment.yml -o k8s-deployment.yml
 ```
 
-#### **Paso 2: Ajustar los secretos**
+#### **Paso 2: Ajustar la configuración**
 
-Edita el `Secret` `gopoli-secrets` y cambia `POSTGRES_PASSWORD` y `GOPOLI_JWT_SECRET` (mínimo 32 caracteres).
+| Recurso | Clave | Qué cambiar |
+| --- | --- | --- |
+| `Secret` `gopoli-secrets` | `POSTGRES_PASSWORD`, `GOPOLI_JWT_SECRET` | Valores propios (el secreto JWT con al menos 32 caracteres) |
+| `ConfigMap` `gopoli-config` | `GOPOLI_SEED_DEMO` | `false` si no quieres cuentas de demostración |
+| `ConfigMap` `gopoli-config` | `NEXT_PUBLIC_API_URL`, `CORS_ALLOWED_ORIGINS` | URLs de la API y de la PWA vistas desde el navegador |
 
 #### **Paso 3: Aplicar**
 
 ```bash
 kubectl apply -f k8s-deployment.yml
+kubectl -n gopoli get pods -w
 ```
 
-#### **Paso 4: Acceder por NodePort (alternativa a port-forward)**
-
-Los servicios exponen puertos fijos: API en `30080` y PWA en `30300`.
+#### **Paso 4: Verificar**
 
 ```bash
-minikube service -n gopoli api-gopoli --url
-minikube service -n gopoli web-gopoli --url
+curl http://localhost:30080/health
+kubectl -n gopoli logs deploy/db-gopoli | grep GoPoli
 ```
 
-Si accedes por NodePort, la PWA debe conocer la URL de la API vista desde el navegador:
-
-```bash
-kubectl -n gopoli set env deployment/web-gopoli NEXT_PUBLIC_API_URL=http://$(minikube ip):30080
-```
+La última línea confirma si se cargaron los datos de demostración.
 
 #### **Paso 5: Eliminar**
 
@@ -87,35 +82,53 @@ Se elimina el namespace `gopoli` completo, incluido el volumen de datos.
 
 | Recurso | Nombre | Descripción |
 | --- | --- | --- |
-| `Namespace` | `gopoli` | Aísla todos los recursos del proyecto |
+| `Namespace` | `gopoli` | Aísla los recursos y exige el estándar de seguridad de pods `restricted` |
 | `Secret` | `gopoli-secrets` | Contraseña de PostgreSQL y secreto JWT |
+| `ConfigMap` | `gopoli-config` | Base, zona horaria, CORS, URL pública de la API y datos demo |
 | `PersistentVolumeClaim` | `pg-data` | 1 GiB para los datos de PostgreSQL |
 | `Deployment` + `Service` | `db-gopoli` | PostgreSQL (`ClusterIP` 5432), estrategia `Recreate` |
-| `Deployment` + `Service` | `api-gopoli` | API (`NodePort` 30080), readiness en `/carreras` |
-| `Deployment` + `Service` | `web-gopoli` | PWA (`NodePort` 30300), readiness en `/login` |
+| `Deployment` + `Service` | `api-gopoli` | API (`NodePort` 30080), sondas en `/health` |
+| `Deployment` + `Service` | `web-gopoli` | PWA (`NodePort` 30300), sondas en `/login` |
+| `NetworkPolicy` | `db-only-from-api` | Solo la API puede conectarse a PostgreSQL |
+
+## **Seguridad de los Pods**
+
+El namespace aplica `pod-security.kubernetes.io/enforce: restricted`, y los tres `Deployment` lo cumplen:
+
+| Medida | Configuración |
+| --- | --- |
+| Usuario sin privilegios | `runAsNonRoot: true` con UID 70 (PostgreSQL), 10001 (API) y 1000 (PWA) |
+| Sistema de archivos de solo lectura | `readOnlyRootFilesystem: true` con `emptyDir` para `/tmp`, el socket de PostgreSQL y la compilación de la PWA |
+| Sin escalada ni capacidades | `allowPrivilegeEscalation: false` y `capabilities.drop: [ALL]` |
+| Perfil seccomp | `RuntimeDefault` |
+| Sin token de la API de Kubernetes | `automountServiceAccountToken: false` |
+| Recursos acotados | `requests` y `limits` de CPU y memoria |
+
+La `NetworkPolicy` solo se aplica si el clúster usa un plugin de red que la soporte (Calico, Cilium); en Docker Desktop y en Minikube sin CNI se ignora sin error.
+
+## **Detalles por Servicio**
 
 ### Base de Datos
 
-```yaml
-containers:
-  - name: postgres
-    image: ghcr.io/gopoli/gopoli-db:latest
-    env:
-      - name: PGDATA
-        value: /var/lib/postgresql/data/pgdata
-```
-
-`PGDATA` apunta a un subdirectorio del volumen para evitar conflictos con archivos del aprovisionador (`lost+found`).
+`PGDATA` apunta a un subdirectorio del volumen para evitar conflictos con archivos del aprovisionador (`lost+found`), y `fsGroup: 70` da al usuario `postgres` permiso de escritura sobre el volumen. Las sondas usan `pg_isready` por TCP, así que el pod solo está listo cuando terminaron los scripts de inicialización.
 
 ### API
 
-La API lee la contraseña de la base y el secreto JWT desde `gopoli-secrets` y se conecta al servicio interno `db-gopoli:5432`. Kubernetes solo le envía tráfico cuando `GET /carreras` responde.
+La API lee la contraseña y el secreto JWT desde `gopoli-secrets` y el resto desde `gopoli-config`, y se conecta al servicio interno `db-gopoli:5432`. La `startupProbe` le da hasta 3 minutos para arrancar antes de que actúe la `livenessProbe`.
 
 ### PWA
 
-La PWA recibe `NEXT_PUBLIC_API_URL` como variable de entorno; la imagen la inyecta al arrancar, por lo que cambiarla solo requiere reiniciar el `Deployment`.
+La PWA recibe `NEXT_PUBLIC_API_URL` al arrancar: la imagen copia la compilación a un `emptyDir` y reemplaza la URL, por lo que cambiarla solo requiere reiniciar el `Deployment`:
+
+```bash
+kubectl -n gopoli rollout restart deploy/web-gopoli
+```
 
 ---
+
+## **Imágenes locales**
+
+Los `Deployment` usan `imagePullPolicy: IfNotPresent`. En Docker Desktop el clúster comparte las imágenes del motor de Docker, así que una imagen construida en local (`docker build -t ghcr.io/gopoli/gopoli-api:latest .`) se usa sin publicarla. En Minikube cárgala con `minikube image load ghcr.io/gopoli/gopoli-api:latest`.
 
 ## **Paquetes privados**
 

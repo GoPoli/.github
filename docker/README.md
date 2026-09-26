@@ -12,7 +12,7 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 | --- | --- | --- |
 | [`demo/`](demo/README.md) | Demostración | Ejecutar GoPoli completo en local con un solo comando, sin configurar nada. |
 | [`dev/`](dev/README.md) | Desarrollo | Stack local con un archivo `.env` por servicio para ajustar la configuración. |
-| [`production/`](production/README.md) | Producción | Solo API y PWA en un servidor; la base de datos vive en Neon. |
+| [`production/`](production/README.md) | Producción | Servidor detrás de Nginx con HTTPS; base incluida en red interna o externa (Neon). |
 
 ---
 
@@ -31,7 +31,7 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 **Ruta:** [`/docker/demo`](demo/README.md)
 
 * Variables definidas directamente en el `docker-compose.yml`.
-* Base de datos con esquema, catálogos y usuario demo.
+* Base de datos con esquema, catálogos y datos de demostración (`GOPOLI_SEED_DEMO=true`).
 * La API espera a que PostgreSQL esté `healthy` antes de arrancar.
 * Ideal para **demostraciones**, **pruebas de integración** y **validaciones rápidas**.
 
@@ -44,7 +44,8 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 * Un archivo `.env` por servicio (`.env.db`, `.env.api`, `.env.web`), sin tocar el compose.
 * Persistencia de PostgreSQL en el volumen `pg_data`.
 * Dependencias explícitas entre servicios (`depends_on` con healthcheck).
-* Misma exposición de puertos que en demo.
+* Datos de demostración opcionales con `GOPOLI_SEED_DEMO` en `.env.db`.
+* Misma exposición de puertos que en demo, solo en `127.0.0.1`.
 
 ---
 
@@ -52,10 +53,10 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 
 **Ruta:** [`/docker/production`](production/README.md)
 
-* Solo los contenedores esenciales: **API** y **PWA**.
-* PostgreSQL gestionado en **Neon** (u otro proveedor).
-* Reinicio automático de los contenedores (`restart: unless-stopped`).
-* Pensado para ir detrás de un proxy reverso con HTTPS.
+* **API**, **PWA** y **PostgreSQL** (perfil `db`) o una base externa como **Neon** (sin perfil).
+* La base vive en una red interna sin puertos publicados; API y PWA escuchan solo en `127.0.0.1` con puertos configurables (`GOPOLI_API_PORT`, `GOPOLI_WEB_PORT`).
+* Sin datos de demostración, etiquetas de imagen fijables y scripts de actualización (`update_gopoli.sh`) y respaldo (`backup_gopoli.sh`).
+* Pensado para ir detrás de Nginx con certificados de Let's Encrypt.
 
 ---
 
@@ -63,8 +64,23 @@ Todas las imágenes se publican automáticamente en **GitHub Container Registry*
 
 | Elemento | Demo | Dev | Producción | Descripción |
 | --- | --- | --- | --- | --- |
-| `pg_data` | ✅ | ✅ | ❌ | Volumen persistente de PostgreSQL. |
-| `network` | ✅ | ✅ | ✅ | Red bridge compartida entre servicios. |
+| `pg_data` | ✅ | ✅ | ✅ (perfil `db`) | Volumen persistente de PostgreSQL. |
+| `network` | ✅ | ✅ | ❌ | Red bridge compartida entre servicios. |
+| `backend` | ❌ | ❌ | ✅ | Red interna entre la API y PostgreSQL, sin salida a internet. |
+| `frontend` | ❌ | ❌ | ✅ | Red de la API y la PWA con los puertos publicados en `127.0.0.1`. |
+
+## Endurecimiento Común
+
+Los tres entornos aplican el mismo perfil de seguridad a cada contenedor mediante el ancla `x-hardening`:
+
+| Medida | Efecto |
+| --- | --- |
+| `read_only: true` + `tmpfs` | El contenedor no puede modificar su propia imagen; lo temporal vive en memoria |
+| `cap_drop: [ALL]` | Sin capacidades de Linux |
+| `no-new-privileges` | Ningún proceso puede escalar privilegios |
+| `deploy.resources.limits` | Límites de CPU y memoria por servicio |
+| `logging` `json-file` 10 MB × 3 | Los logs no llenan el disco |
+| Puertos en `127.0.0.1` | Nada queda expuesto a la red sin un proxy delante |
 
 ---
 

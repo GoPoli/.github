@@ -26,14 +26,16 @@ Este comando:
 Servicios disponibles:
 
 - **PWA GoPoli**: [http://localhost:3000](http://localhost:3000)
-- **API GoPoli**: [http://localhost:8080/ubicaciones](http://localhost:8080/ubicaciones)
+- **API GoPoli**: [http://localhost:8080/health](http://localhost:8080/health)
 - **PostgreSQL**: `postgresql://gopoli:gopoli@localhost:5432/gopoli`
 
-Inicia sesión con el usuario demo:
+Inicia sesión con cualquiera de las cuentas de demostración (contraseña `gopoli-local-dev`):
 
-| Correo | Contraseña |
+| Correo | Rol |
 | --- | --- |
-| `demo.local@elpoli.edu.co` | `gopoli-local-dev` |
+| `demo.local@elpoli.edu.co` | Pasajera con historial y ruta habitual |
+| `conductor.demo@elpoli.edu.co` | Conductor con vehículo y un viaje activo con chat |
+| `pasajera.demo@elpoli.edu.co` | Pasajera unida a los viajes de ejemplo |
 
 Para detener todo:
 
@@ -75,7 +77,8 @@ docker compose -p gopoli up -d
 
 ```bash
 docker compose -p gopoli ps
-curl http://localhost:8080/carreras
+curl http://localhost:8080/health
+curl http://localhost:8080/programs
 ```
 
 La base aparece como `healthy` cuando terminó de crear el esquema; recién entonces arranca la API.
@@ -103,16 +106,17 @@ db-gopoli:
   image: ghcr.io/gopoli/gopoli-db:latest
   container_name: gopoli-db
   ports:
-    - "5432:5432"
+    - "127.0.0.1:5432:5432"
   environment:
-    - POSTGRES_DB=gopoli
-    - POSTGRES_USER=gopoli
-    - POSTGRES_PASSWORD=gopoli
+    POSTGRES_DB: gopoli
+    POSTGRES_USER: gopoli
+    POSTGRES_PASSWORD: gopoli
+    GOPOLI_SEED_DEMO: "true"
   volumes:
     - pg_data:/var/lib/postgresql/data
 ```
 
-- Crea 13 tablas y carga catálogos, ubicaciones y el usuario demo en el primer arranque.
+- Crea 13 tablas y carga catálogos, ubicaciones y los datos de demostración en el primer arranque.
 - El volumen `pg_data` conserva los datos entre reinicios.
 
 ### 2. **API (Spring Boot)**
@@ -122,7 +126,7 @@ api-gopoli:
   image: ghcr.io/gopoli/gopoli-api:latest
   container_name: gopoli-api
   ports:
-    - "8080:8080"
+    - "127.0.0.1:8080:8080"
   depends_on:
     db-gopoli:
       condition: service_healthy
@@ -138,9 +142,9 @@ web-gopoli:
   image: ghcr.io/gopoli/gopoli-web:latest
   container_name: gopoli-web
   ports:
-    - "3000:3000"
+    - "127.0.0.1:3000:3000"
   environment:
-    - NEXT_PUBLIC_API_URL=http://localhost:8080
+    NEXT_PUBLIC_API_URL: http://localhost:8080
 ```
 
 - `NEXT_PUBLIC_API_URL` apunta al puerto publicado en tu equipo, porque es el navegador quien llama a la API.
@@ -155,3 +159,7 @@ networks:
   network:
     driver: bridge
 ```
+
+### 5. **Endurecimiento**
+
+Aunque es un entorno de demostración, los tres contenedores corren con sistema de archivos de solo lectura, sin capacidades de Linux, con `no-new-privileges`, límites de CPU y memoria y rotación de logs. Los puertos solo se publican en `127.0.0.1`, así que nada queda expuesto a la red local.

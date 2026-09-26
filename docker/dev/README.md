@@ -35,6 +35,7 @@ Luego reemplaza los valores entre `< >`:
 | Archivo | Variable | Qué poner |
 | --- | --- | --- |
 | `.env.db` | `POSTGRES_PASSWORD` | Contraseña de la base local |
+| `.env.db` | `GOPOLI_SEED_DEMO` | `true` para crear las cuentas de demostración en el primer arranque |
 | `.env.api` | `SPRING_DATASOURCE_PASSWORD` | La misma contraseña de `.env.db` |
 | `.env.api` | `GOPOLI_JWT_SECRET` | Secreto de al menos 32 caracteres (`openssl rand -base64 48`) |
 | `.env.web` | `NEXT_PUBLIC_API_URL` | URL de la API vista desde el navegador (`http://localhost:8080`) |
@@ -73,7 +74,7 @@ db-gopoli:
   image: ghcr.io/gopoli/gopoli-db:latest
   container_name: gopoli-db
   ports:
-    - "5432:5432"
+    - "127.0.0.1:5432:5432"
   env_file:
     - .env.db
   volumes:
@@ -83,6 +84,7 @@ db-gopoli:
 * **Puerto externo:** `5432`
 * **Datos persistentes:** volumen `pg_data`
 * **Configuración:** `.env.db`
+* **Datos de demostración:** con `GOPOLI_SEED_DEMO=true` crea `demo.local@elpoli.edu.co`, `conductor.demo@elpoli.edu.co` y `pasajera.demo@elpoli.edu.co` (contraseña `gopoli-local-dev`)
 
 ### 2. **API GoPoli (Backend)**
 
@@ -91,7 +93,7 @@ api-gopoli:
   image: ghcr.io/gopoli/gopoli-api:latest
   container_name: gopoli-api
   ports:
-    - "8080:8080"
+    - "127.0.0.1:8080:8080"
   env_file:
     - .env.api
   depends_on:
@@ -110,7 +112,7 @@ web-gopoli:
   image: ghcr.io/gopoli/gopoli-web:latest
   container_name: gopoli-web
   ports:
-    - "3000:3000"
+    - "127.0.0.1:3000:3000"
   env_file:
     - .env.web
 ```
@@ -122,9 +124,11 @@ web-gopoli:
 
 ## **Acceso a los Servicios**
 
-* **PWA GoPoli** → `http://<host>:3000`
-* **API GoPoli** → `http://<host>:8080`
-* **PostgreSQL** → `postgresql://gopoli:<password>@<host>:5432/gopoli`
+* **PWA GoPoli** → `http://localhost:3000`
+* **API GoPoli** → `http://localhost:8080/health`
+* **PostgreSQL** → `postgresql://gopoli:<password>@localhost:5432/gopoli`
+
+Los puertos se publican solo en `127.0.0.1`. Los contenedores corren con el mismo endurecimiento que producción: solo lectura, sin capacidades, `no-new-privileges`, límites de recursos y rotación de logs.
 
 ---
 
@@ -139,7 +143,8 @@ docker compose -p gopoli up -d db-gopoli api-gopoli
 Y en el repositorio de la PWA:
 
 ```bash
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Del mismo modo, para trabajar en la API levanta solo `db-gopoli` y ejecuta `./mvnw spring-boot:run` en GoPoli-API.
